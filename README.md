@@ -15,7 +15,7 @@
 
 - **PostgreSQL + TimescaleDB** - хранение временных рядов метрик и алертов
 - **Redis** - кэширование запросов для улучшения производительности
-- **NATS JetStream** - очередь сообщений для асинхронной обработки алертов
+- **Apache Pulsar** - message broker для TR181 данных и алертов
 
 ## Поддерживаемые метрики
 
@@ -88,9 +88,33 @@ curl "http://localhost:8080/api/v1/alert/high-cpu-usage?serial-number=DEV-000000
 
 - Go 1.21+
 - Docker и Docker Compose
-- Make (опционально)
+- Make (опционально, на Windows используйте `.\build.ps1`)
 
-### Шаги
+### Windows
+
+```powershell
+.\start-all.ps1    # Docker + сборка + инструкции
+.\build.ps1        # Только сборка
+.\test-api.ps1     # Тест API
+.\stop-all.ps1     # Остановка
+```
+
+См. [START.md](START.md) — пошаговая инструкция.
+
+### Linux и macOS
+
+```bash
+chmod +x build.sh start-all.sh stop-all.sh test-api.sh scripts/*.sh
+
+./start-all.sh         # Docker + сборка + инструкции
+./scripts/run-all.sh   # Полный запуск в фоне
+./test-api.sh          # Тест API
+./scripts/stop-all.sh  # Остановка
+```
+
+См. [RUN-LINUX.md](RUN-LINUX.md) — подробная инструкция.
+
+### Шаги (универсально)
 
 1. **Запуск инфраструктуры:**
 ```bash
@@ -131,38 +155,37 @@ PORT=8080 \
 
 # Terminal 2
 POSTGRES_CONN_STR="postgres://postgres:postgres@localhost:5432/tr181?sslmode=disable" \
-NATS_URL="nats://localhost:4222" \
-PORT=8081 \
+PULSAR_URL="pulsar://localhost:6650" \
 ./bin/data-ingestion
 
 # Terminal 3
 POSTGRES_CONN_STR="postgres://postgres:postgres@localhost:5432/tr181?sslmode=disable" \
-NATS_URL="nats://localhost:4222" \
+PULSAR_URL="pulsar://localhost:6650" \
 ./bin/alert-processor
 
 # Terminal 4
-INGESTION_URL="http://localhost:8081/ingest" \
+PULSAR_URL="pulsar://localhost:6650" \
 ./bin/simulator
 ```
 
 ## Переменные окружения
 
 ### API Gateway
-- `PORT` - порт для HTTP сервера (по умолчанию: 8080)
+- `PORT` - порт для HTTP (по умолчанию: 8080)
+- `GRPC_PORT` - порт для gRPC (по умолчанию: 9090)
 - `POSTGRES_CONN_STR` - строка подключения к PostgreSQL
 - `REDIS_ADDR` - адрес Redis сервера
 
 ### Data Ingestion
-- `PORT` - порт для HTTP сервера (по умолчанию: 8081)
 - `POSTGRES_CONN_STR` - строка подключения к PostgreSQL
-- `NATS_URL` - URL NATS сервера
+- `PULSAR_URL` - URL Apache Pulsar (по умолчанию: pulsar://localhost:6650)
 
 ### Alert Processor
 - `POSTGRES_CONN_STR` - строка подключения к PostgreSQL
-- `NATS_URL` - URL NATS сервера
+- `PULSAR_URL` - URL Apache Pulsar
 
 ### Simulator
-- `INGESTION_URL` - URL сервиса приема данных
+- `PULSAR_URL` - URL Apache Pulsar
 
 ## Производительность
 
@@ -172,10 +195,10 @@ INGESTION_URL="http://localhost:8081/ingest" \
 
 ## Технические решения
 
-- **Транспорт**: HTTP REST для внешнего API и приема данных, NATS для межсервисного взаимодействия
+- **Транспорт**: HTTP REST и gRPC для API, Apache Pulsar для межсервисного взаимодействия
 - **Протокол TR181**: JSON формат с поддержкой customer extensions
 - **База данных**: PostgreSQL с TimescaleDB для временных рядов, Redis для кэширования
-- **Обработка алертов**: Асинхронная через NATS JetStream с возможной задержкой
+- **Обработка алертов**: Асинхронная через Apache Pulsar с возможной задержкой
 
 ## Структура проекта
 
