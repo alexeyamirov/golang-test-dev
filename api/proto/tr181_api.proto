@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package tr181.api;
+
+option go_package = "golang-test-dev/api/tr181pb";
+
+// TR181 API Service - gRPC endpoints для метрик и алертов
+service TR181Api {
+  // GetMetric - получение метрик за период
+  rpc GetMetric(MetricRequest) returns (MetricResponse);
+  // GetAlert - получение статистики алертов за период
+  rpc GetAlert(AlertRequest) returns (AlertResponse);
+}
+
+message MetricRequest {
+  string metric_type = 1;    // например cpu-usage
+  string serial_number = 2;   // серийный номер устройства
+  int64 from = 3;            // Unix timestamp начала периода
+  int64 to = 4;              // Unix timestamp конца периода
+}
+
+message MetricValue {
+  int32 value = 1;
+  int64 time = 2;            // Unix timestamp
+}
+
+message MetricResponse {
+  repeated MetricValue metrics = 1;
+}
+
+message AlertRequest {
+  string alert_type = 1;      // например high-cpu-usage
+  string serial_number = 2;
+  int64 from = 3;
+  int64 to = 4;
+}
+
+message AlertResponse {
+  int32 value = 1;            // среднее значение за период
+  int32 count = 2;            // количество алертов
+}

@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: tr181-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tr181
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tr181-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pulsar:
+    image: apachepulsar/pulsar:3.2.0
+    container_name: tr181-pulsar
+    ports:
+      - "6650:6650"   # Binary protocol (client connection)
+      - "8082:8080"   # HTTP/admin (8080 занят API Gateway)
+    command: ["bin/pulsar", "standalone"]
+    environment:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=128m"
+    volumes:
+      - pulsar_data:/pulsar/data
+    # Pulsar standalone требует 30-60 сек для полного запуска
+    healthcheck:
+      test: ["CMD-SHELL", "cd /pulsar && ./bin/pulsar-admin brokers healthcheck || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  redis_data:
+  pulsar_data:
