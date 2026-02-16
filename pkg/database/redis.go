@@ -1,3 +1,4 @@
+// Package database обеспечивает доступ к PostgreSQL (метрики, алерты) и Redis (кэш).
 package database
 
 import (
@@ -9,10 +10,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// RedisCache — кэш метрик и статистики алертов в Redis.
 type RedisCache struct {
 	client *redis.Client
 }
 
+// NewRedisCache подключается к Redis и возвращает кэш.
 func NewRedisCache(addr string) (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:         addr,
@@ -30,6 +33,7 @@ func NewRedisCache(addr string) (*RedisCache, error) {
 	return &RedisCache{client: client}, nil
 }
 
+// Close закрывает соединение с Redis.
 func (r *RedisCache) Close() error {
 	return r.client.Close()
 }

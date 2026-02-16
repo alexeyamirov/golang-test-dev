@@ -35,9 +35,9 @@ services:
     ports:
       - "6650:6650"   # Binary protocol (client connection)
       - "8082:8080"   # HTTP/admin (8080 занят API Gateway)
-    command: ["bin/pulsar", "standalone"]
+    command: ["bin/pulsar", "standalone", "--no-functions-worker"]
     environment:
-      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=128m"
+      PULSAR_MEM: "-Xms1g -Xmx1g -XX:MaxDirectMemorySize=256m"
     volumes:
       - pulsar_data:/pulsar/data
     # Pulsar standalone требует 30-60 сек для полного запуска

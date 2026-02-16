@@ -1,15 +1,16 @@
+// Package tr181 содержит модели данных TR-181 (модель CPE для CWMP/TR-069).
 package tr181
 
 import "time"
 
-// TR181Device представляет устройство с TR181 данными
+// TR181Device представляет устройство с TR181 данными.
 type TR181Device struct {
 	SerialNumber string    `json:"serial_number"`
 	Timestamp    time.Time `json:"timestamp"`
 	Data         DeviceData `json:"data"`
 }
 
-// DeviceData содержит основные параметры TR181 модели
+// DeviceData содержит основные параметры TR181 модели.
 type DeviceData struct {
 	// Device.DeviceInfo.ProcessStatus
 	CPUUsage    int `json:"Device.DeviceInfo.ProcessStatus.CPUUsage"`    // 0-100%
@@ -37,9 +38,10 @@ type DeviceData struct {
 	CustomField2 int `json:"Custom.Extension.Field2,omitempty"`
 }
 
-// MetricType представляет тип метрики для маппинга
+// MetricType представляет тип метрики для маппинга.
 type MetricType string
 
+// Константы типов метрик (используются в API и storage).
 const (
 	MetricCPUUsage            MetricType = "cpu-usage"
 	MetricMemoryUsage         MetricType = "memory-usage"
@@ -54,27 +56,28 @@ const (
 	MetricUptime              MetricType = "uptime"
 )
 
-// AlertType представляет тип алерта
+// AlertType представляет тип алерта.
 type AlertType string
 
+// Константы типов алертов.
 const (
 	AlertHighCPUUsage AlertType = "high-cpu-usage"
 	AlertLowWiFi      AlertType = "low-wifi"
 )
 
-// MetricValue представляет значение метрики с временной меткой
+// MetricValue представляет значение метрики с временной меткой.
 type MetricValue struct {
 	Value int   `json:"value"`
 	Time  int64 `json:"time"` // Unix timestamp
 }
 
-// AlertData представляет данные алерта
+// AlertData представляет данные алерта.
 type AlertData struct {
 	Value int `json:"value"` // среднее значение за период
 	Count int `json:"count"` // количество алертов за период
 }
 
-// GetMetricValue извлекает значение метрики из DeviceData
+// GetMetricValue извлекает значение метрики из DeviceData.
 func (d *DeviceData) GetMetricValue(metricType MetricType) (int, bool) {
 	switch metricType {
 	case MetricCPUUsage:
@@ -104,21 +107,3 @@ func (d *DeviceData) GetMetricValue(metricType MetricType) (int, bool) {
 	}
 }
 
-// CheckAlerts проверяет условия для алертов
-func (d *DeviceData) CheckAlerts() []AlertType {
-	var alerts []AlertType
-	
-	// High CPU usage alert
-	if d.CPUUsage > 60 {
-		alerts = append(alerts, AlertHighCPUUsage)
-	}
-	
-	// Low WiFi signal alert (любой из WiFi сигналов)
-	if d.WiFi2GHzSignalStrength < -100 || 
-	   d.WiFi5GHzSignalStrength < -100 || 
-	   d.WiFi6GHzSignalStrength < -100 {
-		alerts = append(alerts, AlertLowWiFi)
-	}
-	
-	return alerts
-}
