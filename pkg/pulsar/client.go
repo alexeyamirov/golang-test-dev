@@ -1,3 +1,4 @@
+// Package pulsar предоставляет клиент для подключения к Apache Pulsar.
 package pulsar
 
 import (
@@ -8,11 +9,15 @@ import (
 )
 
 const (
+	// TopicTR181Data — топик для данных устройств TR181 (метрики, телеметрия).
 	TopicTR181Data = "persistent://public/default/tr181-device-data"
-	TopicAlerts    = "persistent://public/default/alerts"
+	// TopicAlerts — топик для алертов (устаревший, алерты пишутся в БД).
+	TopicAlerts = "persistent://public/default/alerts"
+	// TopicLogs — топик для логов (опциональный log-viewer подписывается).
+	TopicLogs = "persistent://public/default/tr181-logs"
 )
 
-// NewClient создаёт Pulsar клиент
+// NewClient создаёт Pulsar клиент.
 func NewClient(url string) (pulsarclient.Client, error) {
 	if url == "" {
 		url = os.Getenv("PULSAR_URL")
@@ -23,7 +28,7 @@ func NewClient(url string) (pulsarclient.Client, error) {
 
 	return pulsarclient.NewClient(pulsarclient.ClientOptions{
 		URL:               url,
-		OperationTimeout:  30 * time.Second,
-		ConnectionTimeout: 10 * time.Second,
+		OperationTimeout:  90 * time.Second, // создание топика при первом producer может занимать 45–60 сек
+		ConnectionTimeout: 30 * time.Second,
 	})
 }

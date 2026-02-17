@@ -8,6 +8,7 @@ go build -o bin/api-gateway.exe ./services/api-gateway
 go build -o bin/data-ingestion.exe ./services/data-ingestion
 go build -o bin/alert-processor.exe ./services/alert-processor
 go build -o bin/simulator.exe ./simulator
+go build -o bin/log-viewer.exe ./services/log-viewer
 
 Write-Host "Build complete!" -ForegroundColor Green
 Write-Host "Binaries in bin/ folder" -ForegroundColor Gray

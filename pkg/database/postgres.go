@@ -1,3 +1,4 @@
+// Package database — см. package doc в redis.go.
 package database
 
 import (
@@ -9,10 +10,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PostgresDB — обёртка над sql.DB для метрик и алертов (TimescaleDB).
 type PostgresDB struct {
 	db *sql.DB
 }
 
+// NewPostgresDB подключается к PostgreSQL и возвращает клиент БД.
 func NewPostgresDB(connStr string) (*PostgresDB, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -31,10 +34,12 @@ func NewPostgresDB(connStr string) (*PostgresDB, error) {
 	return &PostgresDB{db: db}, nil
 }
 
+// Close закрывает соединение с БД.
 func (p *PostgresDB) Close() error {
 	return p.db.Close()
 }
 
+// DB возвращает низкоуровневый *sql.DB (для миграций и т.п.).
 func (p *PostgresDB) DB() *sql.DB {
 	return p.db
 }
@@ -144,11 +149,13 @@ func (p *PostgresDB) GetAlertStats(ctx context.Context, serialNumber, alertType 
 	return &stats, err
 }
 
+// MetricValue — значение метрики с временной меткой (используется в pkg/database).
 type MetricValue struct {
 	Value int   `json:"value"`
 	Time  int64 `json:"time"`
 }
 
+// AlertStats — агрегированная статистика алертов (среднее значение и количество).
 type AlertStats struct {
 	Value int `json:"value"`
 	Count int `json:"count"`

@@ -13,10 +13,11 @@
    cd E:\works\education\go\golang-test-dev
    ```
 
-3. **Запустите Docker контейнеры:**
+3. **Запустите всё одной командой** (рекомендуется — очищает Pulsar volume и избегает Bookie-ошибок):
    ```powershell
-   docker-compose up -d
+   .\start-all.ps1
    ```
+   Или вручную: `docker-compose down` → удалите volume `golang-test-dev_pulsar_data` → `docker-compose up -d`
 
 4. **Проверьте, что контейнеры запущены:**
    ```powershell
@@ -65,6 +66,7 @@
 cd E:\works\education\go\golang-test-dev
 $env:POSTGRES_CONN_STR="postgres://postgres:postgres@localhost:5432/tr181?sslmode=disable"
 $env:REDIS_ADDR="localhost:6379"
+$env:PULSAR_URL="pulsar://localhost:6650"
 $env:PORT="8080"
 $env:GRPC_PORT="9090"
 .\bin\api-gateway.exe
@@ -93,6 +95,13 @@ $env:PULSAR_URL="pulsar://localhost:6650"
 .\bin\simulator.exe
 ```
 
+#### Терминал 5 - Log Viewer (опционально):
+Показывает логи всех сервисов в одном окне. Можно запустить в любой момент после старта остальных.
+```powershell
+cd E:\works\education\go\golang-test-dev
+$env:PULSAR_URL="pulsar://localhost:6650"
+.\bin\log-viewer.exe
+```
 ---
 
 ### Шаг 4: Проверка работы

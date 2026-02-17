@@ -14,9 +14,22 @@ try {
     exit 1
 }
 
+# Остановка старых контейнеров и очистка Pulsar (избегаем Bookie/ledger ошибок)
+Write-Host ""
+Write-Host "2. Resetting Pulsar (clean volume)..." -ForegroundColor Cyan
+docker-compose down 2>$null | Out-Null
+$volumes = docker volume ls -q 2>$null
+foreach ($v in $volumes) {
+    if ($v -match "pulsar_data") {
+        docker volume rm $v 2>$null | Out-Null
+        Write-Host "   Pulsar volume removed" -ForegroundColor Gray
+        break
+    }
+}
+
 # Запуск Docker контейнеров
 Write-Host ""
-Write-Host "2. Starting Docker containers..." -ForegroundColor Cyan
+Write-Host "3. Starting Docker containers..." -ForegroundColor Cyan
 docker-compose up -d
 if ($LASTEXITCODE -ne 0) {
     Write-Host "   Failed to start containers" -ForegroundColor Red
@@ -26,7 +39,7 @@ Write-Host "   Containers started" -ForegroundColor Green
 
 # Ожидание готовности сервисов
 Write-Host ""
-Write-Host "3. Waiting for services to be ready..." -ForegroundColor Cyan
+Write-Host "4. Waiting for services to be ready..." -ForegroundColor Cyan
 Start-Sleep -Seconds 10
 
 # Проверка готовности PostgreSQL
@@ -57,13 +70,13 @@ try {
     Write-Host "   Redis check failed (may still work)" -ForegroundColor Yellow
 }
 
-# Ожидание Pulsar (может потребоваться больше времени)
-Write-Host "   Waiting for Pulsar (30s)..." -ForegroundColor Gray
-Start-Sleep -Seconds 30
+# Ожидание Pulsar (60 сек — создание топиков при первом producer может долго заниматься)
+Write-Host "   Waiting for Pulsar (60s)..." -ForegroundColor Gray
+Start-Sleep -Seconds 60
 
 # Сборка приложений
 Write-Host ""
-Write-Host "4. Building applications..." -ForegroundColor Cyan
+Write-Host "5. Building applications..." -ForegroundColor Cyan
 Write-Host "   Building API Gateway..." -ForegroundColor Gray
 go build -o bin/api-gateway.exe ./services/api-gateway
 if ($LASTEXITCODE -ne 0) {
@@ -92,6 +105,13 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+Write-Host "   Building Log Viewer..." -ForegroundColor Gray
+go build -o bin/log-viewer.exe ./services/log-viewer
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "   Failed to build Log Viewer" -ForegroundColor Red
+    exit 1
+}
+
 Write-Host "   All applications built" -ForegroundColor Green
 
 # Инструкции по запуску
@@ -103,6 +123,7 @@ Write-Host ""
 Write-Host "Terminal 1 - API Gateway (HTTP + gRPC):" -ForegroundColor Cyan
 Write-Host '  $env:POSTGRES_CONN_STR="postgres://postgres:postgres@localhost:5432/tr181?sslmode=disable"'
 Write-Host '  $env:REDIS_ADDR="localhost:6379"'
+Write-Host '  $env:PULSAR_URL="pulsar://localhost:6650"'
 Write-Host '  $env:PORT="8080"'
 Write-Host '  $env:GRPC_PORT="9090"'
 Write-Host '  .\bin\api-gateway.exe'
@@ -121,4 +142,8 @@ Write-Host ""
 Write-Host "Terminal 4 - Simulator:" -ForegroundColor Cyan
 Write-Host '  $env:PULSAR_URL="pulsar://localhost:6650"'
 Write-Host '  .\bin\simulator.exe'
+Write-Host ""
+Write-Host "Terminal 5 - Log Viewer (optional):" -ForegroundColor Cyan
+Write-Host '  $env:PULSAR_URL="pulsar://localhost:6650"'
+Write-Host '  .\bin\log-viewer.exe'
 Write-Host ""
