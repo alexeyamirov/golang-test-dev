@@ -22,16 +22,24 @@ chmod +x build.sh start-all.sh stop-all.sh test-api.sh scripts/*.sh
 
 После выполнения следуйте выведенным инструкциям и запустите 4 терминала с нужными переменными окружения.
 
-### Вариант 2: Полный автомат (все в фоне)
+### Вариант 2: Одна команда — всё в фоне
 
 ```bash
 chmod +x scripts/run-all.sh scripts/stop-all.sh
 
-# Запуск всех сервисов в фоне
+# Запуск: Docker + сборка + все 4 сервиса
 ./scripts/run-all.sh
 
 # Остановка
 ./scripts/stop-all.sh
+```
+
+Скрипт: очищает Pulsar volume, поднимает Docker, ждёт 60 сек, собирает приложения и запускает сервисы. Логи в `logs/*.log`.
+
+Опционально log-viewer в отдельном терминале:
+```bash
+export PULSAR_URL="pulsar://localhost:6650"
+./bin/log-viewer
 ```
 
 ### Вариант 3: Ручной запуск
@@ -47,7 +55,8 @@ sleep 45   # Ожидание Pulsar
 # 3. Терминалы (по одному на сервис)
 # Терминал 1
 export POSTGRES_CONN_STR="postgres://postgres:postgres@localhost:5432/tr181?sslmode=disable"
-export REDIS_ADDR="localhost:6379" PORT=8080 GRPC_PORT=9090
+export REDIS_ADDR="localhost:6379" PULSAR_URL="pulsar://localhost:6650"
+export PORT=8080 GRPC_PORT=9090
 ./bin/api-gateway
 
 # Терминал 2
@@ -116,6 +125,8 @@ grpcurl -plaintext -d '{"metric_type":"cpu-usage","serial_number":"DEV-00000001"
 # Логи (при run-all.sh)
 tail -f logs/api-gateway.log
 tail -f logs/simulator.log
+tail -f logs/data-ingestion.log
+tail -f logs/alert-processor.log
 
 # Статус Docker
 docker ps

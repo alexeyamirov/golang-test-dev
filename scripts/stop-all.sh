@@ -26,6 +26,7 @@ pkill -f "bin/api-gateway" 2>/dev/null || true
 pkill -f "bin/data-ingestion" 2>/dev/null || true
 pkill -f "bin/alert-processor" 2>/dev/null || true
 pkill -f "bin/simulator" 2>/dev/null || true
+pkill -f "bin/log-viewer" 2>/dev/null || true
 
 # Остановка Docker контейнеров
 echo "Stopping Docker containers..."

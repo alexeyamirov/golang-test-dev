@@ -14,6 +14,7 @@ go build -o bin/api-gateway ./services/api-gateway
 go build -o bin/data-ingestion ./services/data-ingestion
 go build -o bin/alert-processor ./services/alert-processor
 go build -o bin/simulator ./simulator
+go build -o bin/log-viewer ./services/log-viewer
 
 echo "Build complete!"
 echo "Binaries in bin/ folder"

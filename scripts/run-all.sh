@@ -1,5 +1,5 @@
 #!/bin/bash
-# Запуск всех сервисов в фоне (Linux и macOS)
+# Запуск всех сервисов одной командой (Linux и macOS)
 # Использование: ./scripts/run-all.sh
 
 set -e
@@ -16,47 +16,45 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Запуск инфраструктуры
-echo "Starting Docker containers (PostgreSQL, Redis, Pulsar)..."
+# Очистка Pulsar volume (избегаем Bookie/ledger ошибок)
+echo "1. Resetting Pulsar (clean volume)..."
+docker-compose down 2>/dev/null || true
+for vol in $(docker volume ls -q 2>/dev/null | grep pulsar_data || true); do
+    docker volume rm "$vol" 2>/dev/null && echo "   Pulsar volume removed" || true
+    break
+done
+
+# Запуск Docker
+echo ""
+echo "2. Starting Docker (PostgreSQL, Redis, Pulsar)..."
 docker-compose up -d
 
-# Ожидание готовности
-echo "Waiting for services to be ready..."
-sleep 15
-
-# Проверка PostgreSQL
-until docker exec tr181-postgres pg_isready -U postgres &> /dev/null; do
-    echo "Waiting for PostgreSQL..."
+# Ожидание PostgreSQL
+echo "3. Waiting for PostgreSQL..."
+for i in $(seq 1 15); do
+    if docker exec tr181-postgres pg_isready -U postgres &> /dev/null; then
+        echo "   PostgreSQL is ready"
+        break
+    fi
+    [ $i -eq 15 ] && { echo "   PostgreSQL timeout"; exit 1; }
     sleep 2
 done
-echo "PostgreSQL is ready"
 
-# Проверка Redis
-until docker exec tr181-redis redis-cli ping &> /dev/null; do
-    echo "Waiting for Redis..."
-    sleep 2
-done
-echo "Redis is ready"
+# Ожидание Redis
+echo "   Checking Redis..."
+docker exec tr181-redis redis-cli ping &> /dev/null && echo "   Redis is ready" || echo "   Redis check skipped"
 
-# Ожидание Pulsar (дольше запускается)
-echo "Waiting for Pulsar (45s)..."
-sleep 45
+# Ожидание Pulsar (60 сек)
+echo "   Waiting for Pulsar (60s)..."
+sleep 60
 
-# Сборка приложений
-echo "Building applications..."
-if [ -f "./build.sh" ]; then
-    chmod +x ./build.sh
-    ./build.sh
-else
-    make build 2>/dev/null || {
-        go build -o bin/api-gateway ./services/api-gateway
-        go build -o bin/data-ingestion ./services/data-ingestion
-        go build -o bin/alert-processor ./services/alert-processor
-        go build -o bin/simulator ./simulator
-    }
-fi
+# Сборка
+echo ""
+echo "4. Building applications..."
+chmod +x ./build.sh 2>/dev/null || true
+./build.sh
 
-# Создаём папку для логов
+# Папка для логов
 mkdir -p logs
 
 # Переменные окружения
@@ -64,29 +62,29 @@ export POSTGRES_CONN_STR="postgres://postgres:postgres@localhost:5432/tr181?sslm
 export PULSAR_URL="pulsar://localhost:6650"
 export REDIS_ADDR="localhost:6379"
 
-# Запуск API Gateway
-echo "Starting API Gateway..."
+# Запуск сервисов в фоне
+echo ""
+echo "5. Starting services..."
+
+echo "   API Gateway..."
 PORT=8080 GRPC_PORT=9090 ./bin/api-gateway > logs/api-gateway.log 2>&1 &
 API_GATEWAY_PID=$!
 
-# Запуск Data Ingestion
-echo "Starting Data Ingestion..."
+echo "   Data Ingestion..."
 ./bin/data-ingestion > logs/data-ingestion.log 2>&1 &
 INGESTION_PID=$!
 
-# Запуск Alert Processor
-echo "Starting Alert Processor..."
+echo "   Alert Processor..."
 ./bin/alert-processor > logs/alert-processor.log 2>&1 &
 PROCESSOR_PID=$!
 
-sleep 3
+sleep 2
 
-# Запуск Simulator
-echo "Starting Simulator..."
+echo "   Simulator..."
 ./bin/simulator > logs/simulator.log 2>&1 &
 SIMULATOR_PID=$!
 
-# Сохраняем PID для stop-all.sh
+# PID для stop-all.sh
 echo "$API_GATEWAY_PID" > logs/api-gateway.pid
 echo "$INGESTION_PID" > logs/data-ingestion.pid
 echo "$PROCESSOR_PID" > logs/alert-processor.pid
@@ -94,17 +92,20 @@ echo "$SIMULATOR_PID" > logs/simulator.pid
 
 echo ""
 echo "=== All services started! ==="
-echo "  API Gateway:    http://localhost:8080 (HTTP), localhost:9090 (gRPC)"
+echo "  API Gateway:    http://localhost:8080   gRPC: localhost:9090"
 echo "  Data Ingestion: consuming from Pulsar"
 echo "  Alert Processor: consuming from Pulsar"
 echo "  Simulator:      publishing to Pulsar"
 echo ""
 echo "Logs: logs/*.log"
 echo ""
+echo "Optional log-viewer (in separate terminal):"
+echo "  export PULSAR_URL=\"pulsar://localhost:6650\""
+echo "  ./bin/log-viewer"
+echo ""
 echo "To stop: ./scripts/stop-all.sh"
 echo ""
 
-# Ожидание сигнала для остановки
-trap "echo 'Stopping services...'; kill $API_GATEWAY_PID $INGESTION_PID $PROCESSOR_PID $SIMULATOR_PID 2>/dev/null; exit" INT TERM
+trap "echo 'Stopping...'; kill $API_GATEWAY_PID $INGESTION_PID $PROCESSOR_PID $SIMULATOR_PID 2>/dev/null; exit" INT TERM
 
 wait
