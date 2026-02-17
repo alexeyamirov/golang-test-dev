@@ -11,6 +11,7 @@ import (
 
 	pulsarclient "github.com/apache/pulsar-client-go/pulsar"
 	"golang-test-dev/pkg/database"
+	"golang-test-dev/pkg/logcollector"
 	"golang-test-dev/pkg/pulsar"
 )
 
@@ -41,6 +42,9 @@ func main() {
 	}
 	defer client.Close()
 
+	// Лог-producer создаём первым (до consumer) — иначе может не подключиться
+	logColl := logcollector.NewFromClient(client, "alert-processor", false)
+
 	consumer, err := client.Subscribe(pulsarclient.ConsumerOptions{
 		Topic:            pulsar.TopicTR181Data,
 		SubscriptionName: "alert-processor-sub",
@@ -52,7 +56,7 @@ func main() {
 	defer consumer.Close()
 
 	storage := NewAlertStorage(db)
-	handler := NewAlertHandler(storage, consumer)
+	handler := NewAlertHandler(storage, consumer, logColl)
 
 	go func() {
 		for {
@@ -66,8 +70,6 @@ func main() {
 		}
 	}()
 
-	go cpuLoadLoop()
-
 	log.Println("alert-processor started")
 
 	quit := make(chan os.Signal, 1)
@@ -75,17 +77,4 @@ func main() {
 	<-quit
 
 	log.Println("shutting down")
-}
-
-// cpuLoadLoop создаёт фоновую CPU нагрузку (для тестов автоскейлинга).
-func cpuLoadLoop() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-	for range ticker.C {
-		sum := 0
-		for i := 0; i < 10000; i++ {
-			sum += i * i
-		}
-		_ = sum
-	}
 }

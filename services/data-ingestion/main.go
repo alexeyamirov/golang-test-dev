@@ -11,6 +11,7 @@ import (
 
 	pulsarclient "github.com/apache/pulsar-client-go/pulsar"
 	"golang-test-dev/pkg/database"
+	"golang-test-dev/pkg/logcollector"
 	"golang-test-dev/pkg/pulsar"
 )
 
@@ -33,6 +34,9 @@ func main() {
 	}
 	defer client.Close()
 
+	// Лог-producer создаём первым (до consumer) — иначе может не подключиться
+	logColl := logcollector.NewFromClient(client, "data-ingestion", false)
+
 	consumer, err := client.Subscribe(pulsarclient.ConsumerOptions{
 		Topic:            pulsar.TopicTR181Data,
 		SubscriptionName: "data-ingestion-sub",
@@ -44,7 +48,7 @@ func main() {
 	defer consumer.Close()
 
 	storage := NewMetricStorage(db)
-	handler := NewMessageHandler(storage, consumer)
+	handler := NewMessageHandler(storage, consumer, logColl)
 
 	go func() {
 		for {

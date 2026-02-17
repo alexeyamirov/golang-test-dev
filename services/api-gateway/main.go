@@ -10,13 +10,13 @@ import (
 	"net/http"  // HTTP сервер и клиент
 	"os"        // Переменные окружения, выход из программы
 	"os/signal" // Обработка сигналов ОС (Ctrl+C)
-	"strconv"   // Преобразование строк в числа
 	"syscall"   // Системные вызовы (SIGINT, SIGTERM)
 	"time"      // Работа со временем
 
 	"github.com/gin-gonic/gin"           // HTTP веб-фреймворк
 	tr181pb "golang-test-dev/api/tr181pb/api/proto" // Сгенерированный gRPC код
 	"golang-test-dev/pkg/database"      // PostgreSQL и Redis
+	"golang-test-dev/pkg/logcollector"
 	"golang-test-dev/pkg/tr181"         // Модель данных TR181
 	"google.golang.org/grpc"             // gRPC сервер
 	"google.golang.org/grpc/reflection"  // Рефлексия для grpcurl
@@ -160,10 +160,14 @@ func main() {
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	// Создаём HTTP роутер
-	router := gin.Default()
-	// Добавляем middleware для CPU нагрузки (для автоскейлинга)
-	router.Use(cpuLoadMiddleware())
+	// Создаём HTTP роутер с цветным логгером по коду ответа
+	router := gin.New()
+	router.Use(gin.Recovery())
+	logColl := logcollector.New("api-gateway") // опционально: при PULSAR_URL — для log-viewer
+	if logColl != nil {
+		defer logColl.Close()
+	}
+	router.Use(coloredLogger(logColl))
 
 	// Группа роутов с префиксом /api/v1
 	api := router.Group("/api/v1")
@@ -361,33 +365,17 @@ func getAlertHandler(postgresDB *database.PostgresDB, redisCache *database.Redis
 	}
 }
 
-// parseTime - парсит строку времени в time.Time
+// parseTime парсит время. Допустим только RFC3339 (например 2006-01-02T15:04:05Z07:00).
+// Пустая строка = последние 24 часа. Клиенты конвертируют свои форматы на своей стороне.
 func parseTime(timeStr string) (time.Time, error) {
-	// Пустая строка = последние 24 часа
 	if timeStr == "" {
 		return time.Now().Add(-24 * time.Hour), nil
 	}
-
-	// Поддерживаемые форматы
-	formats := []string{
-		time.RFC3339,
-		"2006-01-02T15:04:05Z",
-		"2006-01-02 15:04:05",
+	t, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid time format: use RFC3339 (e.g. 2006-01-02T15:04:05Z)")
 	}
-
-	// Пробуем каждый формат
-	for _, format := range formats {
-		if t, err := time.Parse(format, timeStr); err == nil {
-			return t, nil
-		}
-	}
-
-	// Пробуем Unix timestamp
-	if unixTime, err := strconv.ParseInt(timeStr, 10, 64); err == nil {
-		return time.Unix(unixTime, 0), nil
-	}
-
-	return time.Time{}, fmt.Errorf("invalid time format")
+	return t, nil
 }
 
 // isValidMetricType - проверяет допустимость типа метрики
@@ -411,15 +399,49 @@ func isValidAlertType(at tr181.AlertType) bool {
 	return at == tr181.AlertHighCPUUsage || at == tr181.AlertLowWiFi
 }
 
-// cpuLoadMiddleware - создаёт небольшую CPU нагрузку (для автоскейлинга в Kubernetes)
-func cpuLoadMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		sum := 0
-		// Небольшие вычисления для имитации нагрузки
-		for i := 0; i < 1000; i++ {
-			sum += i * i
+// ANSI коды для цветного фона: зелёный (2xx), жёлтый (4xx), красный (5xx)
+const (
+	ansiGreen  = "\033[42;30m" // зелёный фон, чёрный текст
+	ansiYellow = "\033[43;30m" // жёлтый фон, чёрный текст
+	ansiRed    = "\033[41;97m" // красный фон, белый текст
+	ansiReset  = "\033[0m"
+)
+
+// coloredLogger — middleware с цветным выводом кода ответа (зелёный=OK, жёлтый=4xx, красный=5xx)
+func coloredLogger(logColl *logcollector.Collector) gin.HandlerFunc {
+	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		path := param.Path
+		if param.Request.URL.RawQuery != "" {
+			path = path + "?" + param.Request.URL.RawQuery
 		}
-		_ = sum
-		c.Next()
-	}
+		var statusColor string
+		var level string
+		switch {
+		case param.StatusCode >= 200 && param.StatusCode < 300:
+			statusColor = ansiGreen
+			level = "info"
+		case param.StatusCode >= 400 && param.StatusCode < 500:
+			statusColor = ansiYellow
+			level = "warn"
+		case param.StatusCode >= 500:
+			statusColor = ansiRed
+			level = "error"
+		default:
+			statusColor = ansiReset
+			level = "info"
+		}
+		line := fmt.Sprintf("%s %d | %13v | %s %s",
+			param.Method, param.StatusCode, param.Latency, path, param.ErrorMessage)
+		if logColl != nil {
+			logColl.Send("api-gateway", level, line)
+		}
+		return fmt.Sprintf("[GIN] %s | %s%3d%s | %13v | %15s | %-7s %s\n",
+			param.TimeStamp.Format("2006/01/02 - 15:04:05"),
+			statusColor, param.StatusCode, ansiReset,
+			param.Latency,
+			param.ClientIP,
+			param.Method,
+			path,
+		)
+	})
 }

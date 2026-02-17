@@ -15,8 +15,9 @@ import (
 	"time"         // Интервалы, таймеры, время
 
 	pulsarclient "github.com/apache/pulsar-client-go/pulsar" // Pulsar клиент
-	"golang-test-dev/pkg/pulsar"                              // Константы тем
-	"golang-test-dev/pkg/tr181"                               // Модель TR181
+	"golang-test-dev/pkg/logcollector"
+	"golang-test-dev/pkg/pulsar" // Константы тем
+	"golang-test-dev/pkg/tr181"  // Модель TR181
 )
 
 // Константы симулятора
@@ -28,12 +29,13 @@ const (
 
 // Simulator - основной объект симулятора
 type Simulator struct {
-	devices   []Device                // Список всех устройств
-	client    pulsarclient.Client     // Pulsar клиент
-	producer  pulsarclient.Producer   // Producer для публикации в Pulsar
-	wg        sync.WaitGroup          // Счётчик горутин (для корректной остановки)
-	stopChan  chan struct{}           // Канал сигнала остановки (закрывается при Stop)
-	batchChan chan tr181.TR181Device  // Канал для сбора данных в батч
+	devices     []Device                // Список всех устройств
+	client      pulsarclient.Client     // Pulsar клиент
+	producer    pulsarclient.Producer   // Producer для публикации в Pulsar
+	logCollect  *logcollector.Collector // опционально: для log-viewer
+	wg          sync.WaitGroup          // Счётчик горутин (для корректной остановки)
+	stopChan    chan struct{}           // Канал сигнала остановки (закрывается при Stop)
+	batchChan   chan tr181.TR181Device  // Канал для сбора данных в батч
 }
 
 // Device - параметры одного симулируемого устройства
@@ -64,18 +66,24 @@ func NewSimulator(pulsarURL string) (*Simulator, error) {
 		return nil, fmt.Errorf("pulsar producer: %w", err)
 	}
 
+	lc := logcollector.NewFromClient(client, "simulator", false)
+
 	// Инициализируем структуру симулятора
 	return &Simulator{
-		devices:   make([]Device, numDevices),           // Массив под 20000 устройств
-		client:    client,
-		producer:  producer,
-		stopChan:  make(chan struct{}),                 // Канал без буфера
-		batchChan: make(chan tr181.TR181Device, batchSize*10), // Буфер на 500 сообщений
+		devices:    make([]Device, numDevices),           // Массив под 20000 устройств
+		client:     client,
+		producer:   producer,
+		logCollect: lc,
+		stopChan:   make(chan struct{}),                 // Канал без буфера
+		batchChan:  make(chan tr181.TR181Device, batchSize*10), // Буфер на 500 сообщений
 	}, nil
 }
 
 // Close - освобождает ресурсы Pulsar
 func (s *Simulator) Close() error {
+	if s.logCollect != nil {
+		s.logCollect.Close()
+	}
 	s.producer.Close()
 	s.client.Close()
 	return nil
@@ -233,7 +241,9 @@ func (s *Simulator) publishBatch(batch []tr181.TR181Device) {
 		return
 	}
 
-	log.Printf("Publishing batch of %d devices to Pulsar", len(batch))
+	if s.logCollect != nil {
+		s.logCollect.Send("simulator", "info", fmt.Sprintf("Publishing batch of %d devices to Pulsar", len(batch)))
+	}
 	successCount := 0
 	// Отправляем каждое устройство отдельным сообщением
 	for _, deviceData := range batch {
@@ -256,8 +266,8 @@ func (s *Simulator) publishBatch(batch []tr181.TR181Device) {
 		successCount++
 	}
 
-	if successCount > 0 {
-		log.Printf("Batch published: %d/%d devices", successCount, len(batch))
+	if successCount > 0 && s.logCollect != nil {
+		s.logCollect.Send("simulator", "info", fmt.Sprintf("Batch published: %d/%d devices", successCount, len(batch)))
 	}
 }
 
