@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -40,7 +41,12 @@ func main() {
 	}
 	defer consumer.Close()
 
-	log.Println("log-viewer started (showing logs from all services, Ctrl+C to exit)")
+	delayMs, _ := strconv.Atoi(os.Getenv("LOG_VIEWER_DELAY_MS"))
+	if delayMs <= 0 {
+		delayMs = 1000 // по умолчанию 1000 мс (~1 строка/сек). LOG_VIEWER_DELAY_MS=500 — быстрее
+	}
+	delay := time.Duration(delayMs) * time.Millisecond
+	log.Printf("log-viewer started (delay=%dms between lines, Ctrl+C to exit)", delayMs)
 
 	go func() {
 		for {
@@ -64,6 +70,7 @@ func main() {
 			reset := "\033[0m"
 			fmt.Printf("%s%s [%s] [%-16s] [%-8s] %s%s\n", code, dateStr, timeStr, entry.Service, entry.Level, entry.Message, reset)
 
+			time.Sleep(delay)
 			consumer.Ack(msg)
 		}
 	}()
