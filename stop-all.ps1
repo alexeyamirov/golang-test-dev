@@ -6,7 +6,7 @@ Write-Host ""
 # Остановка приложений Go
 Write-Host "1. Stopping Go applications..." -ForegroundColor Cyan
 
-$processes = @("api-gateway", "data-ingestion", "alert-processor", "simulator")
+$processes = @("api-gateway", "data-ingestion", "alert-processor", "simulator", "log-viewer")
 $stopped = 0
 
 foreach ($proc in $processes) {
