@@ -14,6 +14,7 @@ func ParseTR181Payload(payload []byte) (*tr181.TR181Device, error) {
 	if err := json.Unmarshal(payload, &device); err != nil {
 		return nil, err
 	}
+	// Если время не указано — подставляем текущее
 	if device.Timestamp.IsZero() {
 		device.Timestamp = time.Now()
 	}

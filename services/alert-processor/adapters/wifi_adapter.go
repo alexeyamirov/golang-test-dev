@@ -18,12 +18,14 @@ func NewWiFiAdapter() *WiFiAdapter {
 // Evaluate оценивает данные устройства и возвращает алерт при сигнале < -100 dBm.
 func (a *WiFiAdapter) Evaluate(device *tr181.TR181Device) []AlertResult {
 	d := &device.Data
+	// Если все три диапазона в норме — алерт не нужен
 	if d.WiFi2GHzSignalStrength >= wifiAlertThreshold &&
 		d.WiFi5GHzSignalStrength >= wifiAlertThreshold &&
 		d.WiFi6GHzSignalStrength >= wifiAlertThreshold {
 		return nil
 	}
 
+	// Берём худший (минимальный) сигнал из трёх диапазонов
 	value := d.WiFi2GHzSignalStrength
 	if d.WiFi5GHzSignalStrength < value {
 		value = d.WiFi5GHzSignalStrength

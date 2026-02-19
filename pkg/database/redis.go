@@ -18,11 +18,11 @@ type RedisCache struct {
 // NewRedisCache подключается к Redis и возвращает кэш.
 func NewRedisCache(addr string) (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:         addr,
-		Password:     "",
-		DB:           0,
-		PoolSize:     10,
-		MinIdleConns: 5,
+		Addr:         addr,    // адрес Redis (например localhost:6379)
+		Password:     "",     // без пароля
+		DB:           0,      // база по умолчанию
+		PoolSize:     10,     // размер пула соединений
+		MinIdleConns: 5,      // минимальное число простаивающих соединений
 	})
 
 	ctx := context.Background()
@@ -38,19 +38,19 @@ func (r *RedisCache) Close() error {
 	return r.client.Close()
 }
 
-// CacheMetrics кэширует метрики
+// CacheMetrics кэширует метрики в Redis с заданным TTL.
 func (r *RedisCache) CacheMetrics(ctx context.Context, key string, metrics []MetricValue, ttl time.Duration) error {
-	data, err := json.Marshal(metrics)
+	data, err := json.Marshal(metrics) // сериализуем в JSON
 	if err != nil {
 		return err
 	}
-	return r.client.Set(ctx, key, data, ttl).Err()
+	return r.client.Set(ctx, key, data, ttl).Err() // сохраняем с временем жизни
 }
 
-// GetCachedMetrics получает метрики из кэша
+// GetCachedMetrics получает метрики из кэша. nil,nil — ключ отсутствует.
 func (r *RedisCache) GetCachedMetrics(ctx context.Context, key string) ([]MetricValue, error) {
 	data, err := r.client.Get(ctx, key).Bytes()
-	if err == redis.Nil {
+	if err == redis.Nil { // ключ не найден
 		return nil, nil
 	}
 	if err != nil {
@@ -64,7 +64,7 @@ func (r *RedisCache) GetCachedMetrics(ctx context.Context, key string) ([]Metric
 	return metrics, nil
 }
 
-// CacheAlertStats кэширует статистику алертов
+// CacheAlertStats кэширует статистику алертов (среднее, количество) с TTL.
 func (r *RedisCache) CacheAlertStats(ctx context.Context, key string, stats *AlertStats, ttl time.Duration) error {
 	data, err := json.Marshal(stats)
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *RedisCache) CacheAlertStats(ctx context.Context, key string, stats *Ale
 	return r.client.Set(ctx, key, data, ttl).Err()
 }
 
-// GetCachedAlertStats получает статистику алертов из кэша
+// GetCachedAlertStats получает статистику алертов из кэша. nil,nil — ключ отсутствует.
 func (r *RedisCache) GetCachedAlertStats(ctx context.Context, key string) (*AlertStats, error) {
 	data, err := r.client.Get(ctx, key).Bytes()
 	if err == redis.Nil {

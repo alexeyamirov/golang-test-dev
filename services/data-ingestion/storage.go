@@ -34,13 +34,14 @@ func NewMetricStorage(db *database.PostgresDB) *MetricStorage {
 	return &MetricStorage{db: db}
 }
 
-// Save сохраняет все метрики устройства в БД.
+// Save сохраняет все метрики устройства в БД (по одной записи на каждый тип).
 func (s *MetricStorage) Save(ctx context.Context, device *tr181.TR181Device) error {
 	for _, mt := range metricTypes {
 		value, ok := device.Data.GetMetricValue(mt)
 		if !ok {
-			continue
+			continue // метрика отсутствует в данных
 		}
+		// Вставляем в таблицу metrics
 		if err := s.db.SaveMetric(ctx, device.SerialNumber, string(mt), value, device.Timestamp); err != nil {
 			log.Printf("save metric %s: %v", mt, err)
 		}

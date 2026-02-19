@@ -27,9 +27,9 @@ func NewPostgresDB(connStr string) (*PostgresDB, error) {
 	}
 
 	// Настройка пула соединений
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(25)              // максимум открытых соединений
+	db.SetMaxIdleConns(5)               // максимум простаивающих
+	db.SetConnMaxLifetime(5 * time.Minute) // время жизни соединения
 
 	return &PostgresDB{db: db}, nil
 }
@@ -85,7 +85,7 @@ func (p *PostgresDB) InitSchema(ctx context.Context) error {
 
 	for _, query := range queries {
 		if _, err := p.db.ExecContext(ctx, query); err != nil {
-			// Игнорируем ошибку если TimescaleDB недоступен
+			// Игнорируем ошибку если TimescaleDB недоступен (обычный PostgreSQL)
 			if query == `SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);` {
 				continue
 			}
@@ -122,10 +122,10 @@ func (p *PostgresDB) GetMetrics(ctx context.Context, serialNumber, metricType st
 		if err := rows.Scan(&m.Value, &m.Time); err != nil {
 			return nil, err
 		}
-		metrics = append(metrics, m)
+		metrics = append(metrics, m) // накапливаем результаты
 	}
 
-	return metrics, rows.Err()
+	return metrics, rows.Err() // проверяем ошибку итерации
 }
 
 // SaveAlert сохраняет алерт в БД
@@ -143,7 +143,7 @@ func (p *PostgresDB) GetAlertStats(ctx context.Context, serialNumber, alertType 
 	
 	var stats AlertStats
 	err := p.db.QueryRowContext(ctx, query, serialNumber, alertType, from, to).Scan(&stats.Value, &stats.Count)
-	if err == sql.ErrNoRows {
+	if err == sql.ErrNoRows { // записей нет — возвращаем нули
 		return &AlertStats{Value: 0, Count: 0}, nil
 	}
 	return &stats, err
