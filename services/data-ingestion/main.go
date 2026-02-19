@@ -16,18 +16,22 @@ import (
 )
 
 func main() {
+	// Загружаем конфигурацию из env
 	cfg := LoadConfig()
 
+	// Подключаемся к PostgreSQL
 	db, err := database.NewPostgresDB(cfg.PostgresConnStr)
 	if err != nil {
 		log.Fatalf("postgres: %v", err)
 	}
 	defer db.Close()
 
+	// Создаём таблицы (если ещё не созданы)
 	if err := db.InitSchema(context.Background()); err != nil {
 		log.Printf("schema: %v", err)
 	}
 
+	// Подключаемся к Pulsar
 	client, err := pulsar.NewClient(cfg.PulsarURL)
 	if err != nil {
 		log.Fatalf("pulsar: %v", err)
@@ -37,6 +41,7 @@ func main() {
 	// Лог-producer создаём первым (до consumer) — иначе может не подключиться
 	logColl := logcollector.NewFromClient(client, "data-ingestion", false)
 
+	// Подписываемся на топик с данными устройств
 	consumer, err := client.Subscribe(pulsarclient.ConsumerOptions{
 		Topic:            pulsar.TopicTR181Data,
 		SubscriptionName: "data-ingestion-sub",
@@ -50,6 +55,7 @@ func main() {
 	storage := NewMetricStorage(db)
 	handler := NewMessageHandler(storage, consumer, logColl)
 
+	// Горутина: бесконечный цикл приёма и обработки сообщений
 	go func() {
 		for {
 			msg, err := consumer.Receive(context.Background())
@@ -64,6 +70,7 @@ func main() {
 
 	log.Println("data-ingestion started")
 
+	// Ожидаем сигнал завершения
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

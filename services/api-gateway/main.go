@@ -318,48 +318,56 @@ func getMetricHandler(postgresDB *database.PostgresDB, redisCache *database.Redi
 // getAlertHandler - HTTP обработчик для получения статистики алертов
 func getAlertHandler(postgresDB *database.PostgresDB, redisCache *database.RedisCache) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Извлекаем параметры
+		// Извлекаем параметры из URL
 		alertType := c.Param("alertType")
 		serialNumber := c.Query("serial-number")
 		fromStr := c.Query("from")
 		toStr := c.Query("to")
 
+		// Проверка обязательного параметра
 		if serialNumber == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "serial-number is required"})
 			return
 		}
 
+		// Парсим время начала периода
 		from, err := parseTime(fromStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from parameter"})
 			return
 		}
 
+		// Парсим время конца периода
 		to, err := parseTime(toStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to parameter"})
 			return
 		}
 
+		// Проверяем валидность типа алерта
 		if !isValidAlertType(tr181.AlertType(alertType)) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid alert type"})
 			return
 		}
 
+		// Формируем ключ кэша
 		cacheKey := fmt.Sprintf("alert:%s:%s:%d:%d", alertType, serialNumber, from.Unix(), to.Unix())
 		ctx := c.Request.Context()
 
+		// Пробуем получить из кэша
 		if cached, err := redisCache.GetCachedAlertStats(ctx, cacheKey); err == nil && cached != nil {
 			c.JSON(http.StatusOK, cached)
 			return
 		}
 
+		// Запрашиваем из PostgreSQL
 		stats, err := postgresDB.GetAlertStats(ctx, serialNumber, alertType, from, to)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get alert stats"})
 			return
 		}
 
+		// Сохраняем в кэш на 30 секунд и возвращаем результат
 		redisCache.CacheAlertStats(ctx, cacheKey, stats, 30*time.Second)
 		c.JSON(http.StatusOK, stats)
 	}
@@ -410,12 +418,14 @@ const (
 // coloredLogger — middleware с цветным выводом кода ответа (зелёный=OK, жёлтый=4xx, красный=5xx)
 func coloredLogger(logColl *logcollector.Collector) gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		// Путь с query string для лога
 		path := param.Path
 		if param.Request.URL.RawQuery != "" {
 			path = path + "?" + param.Request.URL.RawQuery
 		}
 		var statusColor string
 		var level string
+		// Выбираем цвет и уровень по коду ответа
 		switch {
 		case param.StatusCode >= 200 && param.StatusCode < 300:
 			statusColor = ansiGreen
@@ -430,11 +440,13 @@ func coloredLogger(logColl *logcollector.Collector) gin.HandlerFunc {
 			statusColor = ansiReset
 			level = "info"
 		}
+		// Строка для log-viewer (Pulsar)
 		line := fmt.Sprintf("%s %d | %13v | %s %s",
 			param.Method, param.StatusCode, param.Latency, path, param.ErrorMessage)
 		if logColl != nil {
 			logColl.Send("api-gateway", level, line)
 		}
+		// Строка для stdout с цветным кодом
 		return fmt.Sprintf("[GIN] %s | %s%3d%s | %13v | %15s | %-7s %s\n",
 			param.TimeStamp.Format("2006/01/02 - 15:04:05"),
 			statusColor, param.StatusCode, ansiReset,

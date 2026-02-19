@@ -13,46 +13,46 @@ import (
 
 // LogEntry — структура сообщения в топике логов.
 type LogEntry struct {
-	Service   string `json:"service"`
-	Level     string `json:"level"` // info, warn, error
-	Message   string `json:"msg"`
-	Timestamp int64  `json:"ts"`
+	Service   string `json:"service"`   // имя сервиса (simulator, data-ingestion и т.д.)
+	Level     string `json:"level"`     // уровень: info, warn, error
+	Message   string `json:"msg"`      // текст лога
+	Timestamp int64  `json:"ts"`       // Unix-время
 }
 
 // Collector публикует логи в Pulsar. Необязателен: при ошибке подключения Send — no-op.
 type Collector struct {
-	producer pulsarclient.Producer
-	client   pulsarclient.Client // для Close, если создан здесь
-	ownClient bool
+	producer  pulsarclient.Producer   // producer для топика tr181-logs
+	client    pulsarclient.Client     // клиент (закрываем при ownClient=true)
+	ownClient bool                    // true — мы создали client, закрываем при Close
 }
 
 // New создаёт collector с собственным Pulsar клиентом (для api-gateway). При ошибке — nil.
 func New(serviceName string) *Collector {
-	url := os.Getenv("PULSAR_URL")
+	url := os.Getenv("PULSAR_URL") // адрес брокера
 	if url == "" {
 		url = "pulsar://localhost:6650"
 	}
 	client, err := pulsar.NewClient(url)
 	if err != nil {
-		return nil
+		return nil // не удалось подключиться — collector не используется
 	}
-	return NewFromClient(client, serviceName, true)
+	return NewFromClient(client, serviceName, true) // ownClient=true — мы владеем client
 }
 
 // NewFromClient создаёт collector из существующего клиента (для simulator, data-ingestion, alert-processor).
-// serviceName — уникальное имя для producer (избегаем конфликтов). ownClient=false — клиент не закрывается при Close().
+// serviceName — уникальное имя producer. ownClient=false — клиент не закрывается при Close().
 func NewFromClient(client pulsarclient.Client, serviceName string, ownClient bool) *Collector {
-	name := "log-" + serviceName
+	name := "log-" + serviceName     // уникальное имя producer
 	if name == "log-" {
-		name = "log-collector"
+		name = "log-collector"       // fallback при пустом имени
 	}
 	prod, err := client.CreateProducer(pulsarclient.ProducerOptions{
-		Topic: pulsar.TopicLogs,
+		Topic: pulsar.TopicLogs,     // топик tr181-logs
 		Name:  name,
 	})
 	if err != nil {
 		if ownClient {
-			client.Close()
+			client.Close()           // освобождаем клиент при ошибке
 		}
 		return nil
 	}
@@ -63,29 +63,29 @@ func NewFromClient(client pulsarclient.Client, serviceName string, ownClient boo
 // Send публикует лог в топик. No-op если producer == nil.
 func (c *Collector) Send(service, level, msg string) {
 	if c == nil || c.producer == nil {
-		return
+		return // collector не инициализирован
 	}
 	entry := LogEntry{
 		Service:   service,
 		Level:     level,
 		Message:   msg,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now().Unix(), // текущее время в Unix
 	}
 	data, err := json.Marshal(entry)
 	if err != nil {
-		return
+		return // игнорируем ошибку сериализации
 	}
 	_, _ = c.producer.Send(context.Background(), &pulsarclient.ProducerMessage{Payload: data})
 }
 
-// Close освобождает producer и при ownClient — клиент.
+// Close освобождает producer и при ownClient — клиент Pulsar.
 func (c *Collector) Close() error {
 	if c == nil || c.producer == nil {
 		return nil
 	}
-	c.producer.Close()
+	c.producer.Close()                    // закрываем producer
 	if c.ownClient && c.client != nil {
-		c.client.Close()
+		c.client.Close()                  // закрываем клиент, если мы его создавали
 	}
 	return nil
 }

@@ -1,13 +1,13 @@
 // Package tr181 содержит модели данных TR-181 (модель CPE для CWMP/TR-069).
 package tr181
 
-import "time"
+import "time" // работа с временными метками
 
 // TR181Device представляет устройство с TR181 данными.
 type TR181Device struct {
-	SerialNumber string    `json:"serial_number"`
-	Timestamp    time.Time `json:"timestamp"`
-	Data         DeviceData `json:"data"`
+	SerialNumber string      `json:"serial_number"` // серийный номер устройства (например DEV-00000001)
+	Timestamp    time.Time   `json:"timestamp"`    // время снятия показаний
+	Data         DeviceData  `json:"data"`         // телеметрия и метрики
 }
 
 // DeviceData содержит основные параметры TR181 модели.
@@ -78,31 +78,32 @@ type AlertData struct {
 }
 
 // GetMetricValue извлекает значение метрики из DeviceData.
+// Возвращает (значение, true) при успехе или (0, false) для неизвестного типа.
 func (d *DeviceData) GetMetricValue(metricType MetricType) (int, bool) {
 	switch metricType {
-	case MetricCPUUsage:
+	case MetricCPUUsage: // загрузка процессора
 		return d.CPUUsage, true
-	case MetricMemoryUsage:
+	case MetricMemoryUsage: // использование памяти
 		return d.MemoryUsage, true
-	case MetricCPUTemperature:
+	case MetricCPUTemperature: // температура CPU
 		return d.CPUTemperature, true
-	case MetricBoardTemperature:
+	case MetricBoardTemperature: // температура платы
 		return d.BoardTemperature, true
-	case MetricRadioTemperature:
+	case MetricRadioTemperature: // температура радиомодуля
 		return d.RadioTemperature, true
-	case MetricWiFi2GHzSignal:
+	case MetricWiFi2GHzSignal: // сигнал WiFi 2.4 ГГц
 		return d.WiFi2GHzSignalStrength, true
-	case MetricWiFi5GHzSignal:
+	case MetricWiFi5GHzSignal: // сигнал WiFi 5 ГГц
 		return d.WiFi5GHzSignalStrength, true
-	case MetricWiFi6GHzSignal:
+	case MetricWiFi6GHzSignal: // сигнал WiFi 6 ГГц
 		return d.WiFi6GHzSignalStrength, true
-	case MetricEthernetBytesSent:
+	case MetricEthernetBytesSent: // отправленные байты по Ethernet
 		return int(d.EthernetBytesSent), true
-	case MetricEthernetBytesRecv:
+	case MetricEthernetBytesRecv: // полученные байты по Ethernet
 		return int(d.EthernetBytesReceived), true
-	case MetricUptime:
+	case MetricUptime: // время работы устройства
 		return int(d.Uptime), true
-	default:
+	default: // неизвестный тип метрики
 		return 0, false
 	}
 }

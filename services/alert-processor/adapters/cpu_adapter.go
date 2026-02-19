@@ -18,7 +18,7 @@ func NewCPUAdapter() *CPUAdapter {
 // Evaluate оценивает данные устройства и возвращает алерты при CPU > 60%.
 func (a *CPUAdapter) Evaluate(device *tr181.TR181Device) []AlertResult {
 	if device.Data.CPUUsage <= cpuAlertThreshold {
-		return nil
+		return nil // норма — алерт не нужен
 	}
 	return []AlertResult{
 		{Type: tr181.AlertHighCPUUsage, Value: device.Data.CPUUsage},

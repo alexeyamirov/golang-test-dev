@@ -18,12 +18,13 @@ const (
 )
 
 // NewClient создаёт Pulsar клиент.
+// URL берётся из аргумента, затем из PULSAR_URL, иначе localhost:6650.
 func NewClient(url string) (pulsarclient.Client, error) {
 	if url == "" {
-		url = os.Getenv("PULSAR_URL")
+		url = os.Getenv("PULSAR_URL") // читаем из переменной окружения
 	}
 	if url == "" {
-		url = "pulsar://localhost:6650"
+		url = "pulsar://localhost:6650" // значение по умолчанию
 	}
 
 	return pulsarclient.NewClient(pulsarclient.ClientOptions{

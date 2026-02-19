@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+	// Читаем конфигурацию из переменных окружения
 	postgresConnStr := os.Getenv("POSTGRES_CONN_STR")
 	if postgresConnStr == "" {
 		postgresConnStr = "postgres://postgres:postgres@localhost:5432/tr181?sslmode=disable"
@@ -26,16 +27,19 @@ func main() {
 		pulsarURL = "pulsar://localhost:6650"
 	}
 
+	// Подключаемся к PostgreSQL
 	db, err := database.NewPostgresDB(postgresConnStr)
 	if err != nil {
 		log.Fatalf("postgres: %v", err)
 	}
 	defer db.Close()
 
+	// Создаём таблицы (если ещё не созданы)
 	if err := db.InitSchema(context.Background()); err != nil {
 		log.Printf("schema: %v", err)
 	}
 
+	// Подключаемся к Pulsar
 	client, err := pulsar.NewClient(pulsarURL)
 	if err != nil {
 		log.Fatalf("pulsar: %v", err)
@@ -45,10 +49,11 @@ func main() {
 	// Лог-producer создаём первым (до consumer) — иначе может не подключиться
 	logColl := logcollector.NewFromClient(client, "alert-processor", false)
 
+	// Подписываемся на топик с данными устройств
 	consumer, err := client.Subscribe(pulsarclient.ConsumerOptions{
 		Topic:            pulsar.TopicTR181Data,
 		SubscriptionName: "alert-processor-sub",
-		Type:             pulsarclient.Shared,
+		Type:             pulsarclient.Shared, // Shared — несколько consumer'ов могут делить нагрузку
 	})
 	if err != nil {
 		log.Fatalf("consumer: %v", err)
@@ -58,6 +63,7 @@ func main() {
 	storage := NewAlertStorage(db)
 	handler := NewAlertHandler(storage, consumer, logColl)
 
+	// Горутина: бесконечный цикл приёма сообщений
 	go func() {
 		for {
 			msg, err := consumer.Receive(context.Background())
@@ -72,6 +78,7 @@ func main() {
 
 	log.Println("alert-processor started")
 
+	// Ожидаем сигнал завершения (Ctrl+C или SIGTERM)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
