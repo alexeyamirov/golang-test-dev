@@ -17,8 +17,8 @@ const (
 	TopicLogs = "persistent://public/default/tr181-logs"
 )
 
-// NewClient создаёт Pulsar клиент.
-// URL берётся из аргумента, затем из PULSAR_URL, иначе localhost:6650.
+// NewClient создает Pulsar клиент.
+// URL берется из аргумента, затем из PULSAR_URL, иначе localhost:6650.
 func NewClient(url string) (pulsarclient.Client, error) {
 	if url == "" {
 		url = os.Getenv("PULSAR_URL") // читаем из переменной окружения

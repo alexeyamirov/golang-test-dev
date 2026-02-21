@@ -22,7 +22,7 @@ chmod +x build.sh start-all.sh stop-all.sh test-api.sh scripts/*.sh
 
 После выполнения следуйте выведенным инструкциям и запустите 4 терминала с нужными переменными окружения.
 
-### Вариант 2: Одна команда — всё в фоне
+### Вариант 2: Одна команда — все в фоне
 
 ```bash
 chmod +x scripts/run-all.sh scripts/stop-all.sh
@@ -34,7 +34,7 @@ chmod +x scripts/run-all.sh scripts/stop-all.sh
 ./scripts/stop-all.sh
 ```
 
-Скрипт: очищает Pulsar volume, поднимает Docker, ждёт 60 сек, собирает приложения и запускает сервисы. Логи в `logs/*.log`.
+Скрипт: очищает Pulsar volume, поднимает Docker, ждет 60 сек, собирает приложения и запускает сервисы. Логи в `logs/*.log`.
 
 Опционально log-viewer в отдельном терминале:
 ```bash
@@ -84,7 +84,7 @@ export PULSAR_URL="pulsar://localhost:6650"
 | `start-all.sh` | Docker + сборка + инструкции для запуска |
 | `scripts/run-all.sh` | Полный запуск в фоне |
 | `scripts/stop-all.sh` | Остановка сервисов и Docker |
-| `stop-all.sh` | Обёртка над scripts/stop-all.sh |
+| `stop-all.sh` | Обертка над scripts/stop-all.sh |
 | `test-api.sh` | Проверка HTTP и gRPC API |
 
 ---
