@@ -4,13 +4,13 @@ import (
 	"golang-test-dev/pkg/tr181"
 )
 
-// cpuAlertThreshold — порог загрузки CPU (%), выше которого создаётся алерт.
+// cpuAlertThreshold — порог загрузки CPU (%), выше которого создается алерт.
 const cpuAlertThreshold = 60
 
 // CPUAdapter проверяет высокую загрузку CPU.
 type CPUAdapter struct{}
 
-// NewCPUAdapter создаёт адаптер для алерта high-cpu-usage.
+// NewCPUAdapter создает адаптер для алерта high-cpu-usage.
 func NewCPUAdapter() *CPUAdapter {
 	return &CPUAdapter{}
 }

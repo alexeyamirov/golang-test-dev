@@ -5,7 +5,7 @@
 echo "=== Testing TR181 Cloud Platform API ==="
 echo ""
 
-# Ждём накопления данных
+# Ждем накопления данных
 echo "Waiting 5 seconds for data to accumulate..."
 sleep 5
 

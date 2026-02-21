@@ -3,39 +3,40 @@
 package main
 
 import (
-	"context"      // Контекст для отправки сообщений в Pulsar
+	"context"       // Контекст для отправки сообщений в Pulsar
 	"encoding/json" // Сериализация данных в JSON
-	"fmt"          // Форматирование строк (серийные номера)
-	"log"          // Логирование
-	"math/rand"    // Генерация случайных чисел
-	"os"           // Переменные окружения
-	"os/signal"    // Обработка сигналов завершения
-	"sync"         // sync.WaitGroup для ожидания горутин
-	"syscall"      // SIGINT, SIGTERM
-	"time"         // Интервалы, таймеры, время
+	"fmt"           // Форматирование строк (серийные номера)
+	"log"           // Логирование
+	"math/rand"     // Генерация случайных чисел
+	"os"            // Переменные окружения
+	"os/signal"     // Обработка сигналов завершения
+	"sync"          // sync.WaitGroup для ожидания горутин
+	"syscall"       // SIGINT, SIGTERM
+	"time"          // Интервалы, таймеры, время
 
-	pulsarclient "github.com/apache/pulsar-client-go/pulsar" // Pulsar клиент
 	"golang-test-dev/pkg/logcollector"
 	"golang-test-dev/pkg/pulsar" // Константы тем
 	"golang-test-dev/pkg/tr181"  // Модель TR181
+
+	pulsarclient "github.com/apache/pulsar-client-go/pulsar" // Pulsar клиент
 )
 
 // Константы симулятора
 const (
-	numDevices = 20000              // Количество симулируемых устройств
-	interval   = 30 * time.Second   // Интервал отправки данных от каждого устройства (30 сек)
-	batchSize  = 50                 // Размер батча перед отправкой в Pulsar
+	numDevices = 20000            // Количество симулируемых устройств
+	interval   = 30 * time.Second // Интервал отправки данных от каждого устройства (30 сек)
+	batchSize  = 50               // Размер батча перед отправкой в Pulsar
 )
 
 // Simulator - основной объект симулятора
 type Simulator struct {
-	devices     []Device                // Список всех устройств
-	client      pulsarclient.Client     // Pulsar клиент
-	producer    pulsarclient.Producer   // Producer для публикации в Pulsar
-	logCollect  *logcollector.Collector // опционально: для log-viewer
-	wg          sync.WaitGroup          // Счётчик горутин (для корректной остановки)
-	stopChan    chan struct{}           // Канал сигнала остановки (закрывается при Stop)
-	batchChan   chan tr181.TR181Device  // Канал для сбора данных в батч
+	devices    []Device                // Список всех устройств
+	client     pulsarclient.Client     // Pulsar клиент
+	producer   pulsarclient.Producer   // Producer для публикации в Pulsar
+	logCollect *logcollector.Collector // опционально: для log-viewer
+	wg         sync.WaitGroup          // Счетчик горутин (для корректной остановки)
+	stopChan   chan struct{}           // Канал сигнала остановки (закрывается при Stop)
+	batchChan  chan tr181.TR181Device  // Канал для сбора данных в батч
 }
 
 // Device - параметры одного симулируемого устройства
@@ -48,7 +49,7 @@ type Device struct {
 	baseWiFi6GHz int    // Базовый сигнал WiFi 6 GHz (dBm)
 }
 
-// NewSimulator - создаёт симулятор и подключается к Pulsar
+// NewSimulator - создает симулятор и подключается к Pulsar
 func NewSimulator(pulsarURL string) (*Simulator, error) {
 	// Подключаемся к Pulsar
 	client, err := pulsar.NewClient(pulsarURL)
@@ -56,7 +57,7 @@ func NewSimulator(pulsarURL string) (*Simulator, error) {
 		return nil, fmt.Errorf("pulsar client: %w", err)
 	}
 
-	// Создаём producer для публикации в тему tr181-device-data
+	// Создаем producer для публикации в тему tr181-device-data
 	producer, err := client.CreateProducer(pulsarclient.ProducerOptions{
 		Topic: pulsar.TopicTR181Data,
 		Name:  "simulator-producer",
@@ -70,11 +71,11 @@ func NewSimulator(pulsarURL string) (*Simulator, error) {
 
 	// Инициализируем структуру симулятора
 	return &Simulator{
-		devices:    make([]Device, numDevices),           // Массив под 20000 устройств
+		devices:    make([]Device, numDevices), // Массив под 20000 устройств
 		client:     client,
 		producer:   producer,
 		logCollect: lc,
-		stopChan:   make(chan struct{}),                 // Канал без буфера
+		stopChan:   make(chan struct{}),                        // Канал без буфера
 		batchChan:  make(chan tr181.TR181Device, batchSize*10), // Буфер на 500 сообщений
 	}, nil
 }
@@ -93,7 +94,7 @@ func (s *Simulator) Close() error {
 func (s *Simulator) Init() {
 	// Инициализируем генератор случайных чисел
 	rand.Seed(time.Now().UnixNano())
-	// Для каждого устройства задаём уникальные параметры
+	// Для каждого устройства задаем уникальные параметры
 	for i := 0; i < numDevices; i++ {
 		s.devices[i] = Device{
 			SerialNumber: fmt.Sprintf("DEV-%08d", i+1), // DEV-00000001 ... DEV-00020000
@@ -123,16 +124,16 @@ func (s *Simulator) Start() {
 	log.Println("Simulator started (publishing to Apache Pulsar)")
 }
 
-// Stop - останавливает все горутины и ждёт их завершения
+// Stop - останавливает все горутины и ждет их завершения
 func (s *Simulator) Stop() {
 	close(s.stopChan) // Закрываем канал - все горутины получают сигнал
-	s.wg.Wait()       // Ждём завершения всех горутин
+	s.wg.Wait()       // Ждем завершения всех горутин
 	log.Println("Simulator stopped")
 }
 
 // simulateDevice - симулирует одно устройство (работает в отдельной горутине)
 func (s *Simulator) simulateDevice(device *Device) {
-	defer s.wg.Done() // По завершении уменьшаем счётчик WaitGroup
+	defer s.wg.Done() // По завершении уменьшаем счетчик WaitGroup
 	// Случайная задержка 0-1000 мс - распределяем нагрузку во времени
 	initialDelay := time.Duration(rand.Intn(1000)) * time.Millisecond
 	time.Sleep(initialDelay)
@@ -160,17 +161,17 @@ func (s *Simulator) simulateDevice(device *Device) {
 func (s *Simulator) generateAndQueueData(device *Device) {
 	// Генерируем данные с вариациями от базовых значений
 	data := tr181.DeviceData{
-		CPUUsage:                 s.vary(device.baseCPU, 10),      // CPU ±10%
-		MemoryUsage:              s.vary(device.baseMemory, 10),   // Память ±10%
-		CPUTemperature:           45 + rand.Intn(15),              // 45-60°C
-		BoardTemperature:         40 + rand.Intn(10),              // 40-50°C
-		RadioTemperature:         50 + rand.Intn(15),              // 50-65°C
-		WiFi2GHzSignalStrength:   s.vary(device.baseWiFi2GHz, 10),
-		WiFi5GHzSignalStrength:   s.vary(device.baseWiFi5GHz, 10),
-		WiFi6GHzSignalStrength:   s.vary(device.baseWiFi6GHz, 10),
-		EthernetBytesSent:        int64(rand.Intn(1000000)),
-		EthernetBytesReceived:    int64(rand.Intn(1000000)),
-		Uptime:                   int64(rand.Intn(86400 * 30)),   // До 30 дней в секундах
+		CPUUsage:               s.vary(device.baseCPU, 10),    // CPU ±10%
+		MemoryUsage:            s.vary(device.baseMemory, 10), // Память ±10%
+		CPUTemperature:         45 + rand.Intn(15),            // 45-60°C
+		BoardTemperature:       40 + rand.Intn(10),            // 40-50°C
+		RadioTemperature:       50 + rand.Intn(15),            // 50-65°C
+		WiFi2GHzSignalStrength: s.vary(device.baseWiFi2GHz, 10),
+		WiFi5GHzSignalStrength: s.vary(device.baseWiFi5GHz, 10),
+		WiFi6GHzSignalStrength: s.vary(device.baseWiFi6GHz, 10),
+		EthernetBytesSent:      int64(rand.Intn(1000000)),
+		EthernetBytesReceived:  int64(rand.Intn(1000000)),
+		Uptime:                 int64(rand.Intn(86400 * 30)), // До 30 дней в секундах
 	}
 
 	// 5% вероятность - высокий CPU (для генерации алерта high-cpu-usage)
@@ -287,7 +288,7 @@ func main() {
 		pulsarURL = "pulsar://localhost:6650"
 	}
 
-	// Создаём симулятор
+	// Создаем симулятор
 	simulator, err := NewSimulator(pulsarURL)
 	if err != nil {
 		log.Fatalf("Failed to create simulator: %v", err)

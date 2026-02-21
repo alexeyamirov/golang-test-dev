@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// PostgresDB — обёртка над sql.DB для метрик и алертов (TimescaleDB).
+// PostgresDB — обертка над sql.DB для метрик и алертов (TimescaleDB).
 type PostgresDB struct {
 	db *sql.DB
 }
@@ -27,8 +27,8 @@ func NewPostgresDB(connStr string) (*PostgresDB, error) {
 	}
 
 	// Настройка пула соединений
-	db.SetMaxOpenConns(25)              // максимум открытых соединений
-	db.SetMaxIdleConns(5)               // максимум простаивающих
+	db.SetMaxOpenConns(25)                 // максимум открытых соединений
+	db.SetMaxIdleConns(5)                  // максимум простаивающих
 	db.SetConnMaxLifetime(5 * time.Minute) // время жизни соединения
 
 	return &PostgresDB{db: db}, nil
@@ -49,7 +49,7 @@ func (p *PostgresDB) InitSchema(ctx context.Context) error {
 	queries := []string{
 		// Расширение для TimescaleDB (если доступно)
 		`CREATE EXTENSION IF NOT EXISTS timescaledb;`,
-		
+
 		// Таблица для метрик
 		`CREATE TABLE IF NOT EXISTS metrics (
 			id BIGSERIAL PRIMARY KEY,
@@ -59,14 +59,14 @@ func (p *PostgresDB) InitSchema(ctx context.Context) error {
 			timestamp TIMESTAMPTZ NOT NULL,
 			created_at TIMESTAMPTZ DEFAULT NOW()
 		);`,
-		
+
 		// Создание hypertable для TimescaleDB
 		`SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);`,
-		
+
 		// Индексы для быстрого поиска
 		`CREATE INDEX IF NOT EXISTS idx_metrics_serial_time ON metrics(serial_number, timestamp DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_metrics_type_time ON metrics(metric_type, timestamp DESC);`,
-		
+
 		// Таблица для алертов
 		`CREATE TABLE IF NOT EXISTS alerts (
 			id BIGSERIAL PRIMARY KEY,
@@ -77,7 +77,7 @@ func (p *PostgresDB) InitSchema(ctx context.Context) error {
 			processed BOOLEAN DEFAULT FALSE,
 			created_at TIMESTAMPTZ DEFAULT NOW()
 		);`,
-		
+
 		`CREATE INDEX IF NOT EXISTS idx_alerts_serial_time ON alerts(serial_number, timestamp DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_alerts_type_time ON alerts(alert_type, timestamp DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_alerts_processed ON alerts(processed) WHERE processed = FALSE;`,
@@ -109,7 +109,7 @@ func (p *PostgresDB) GetMetrics(ctx context.Context, serialNumber, metricType st
 			  FROM metrics 
 			  WHERE serial_number = $1 AND metric_type = $2 AND timestamp >= $3 AND timestamp <= $4 
 			  ORDER BY timestamp ASC`
-	
+
 	rows, err := p.db.QueryContext(ctx, query, serialNumber, metricType, from, to)
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (p *PostgresDB) GetAlertStats(ctx context.Context, serialNumber, alertType 
 	query := `SELECT AVG(value)::INTEGER as avg_value, COUNT(*) as count 
 			  FROM alerts 
 			  WHERE serial_number = $1 AND alert_type = $2 AND timestamp >= $3 AND timestamp <= $4`
-	
+
 	var stats AlertStats
 	err := p.db.QueryRowContext(ctx, query, serialNumber, alertType, from, to).Scan(&stats.Value, &stats.Count)
 	if err == sql.ErrNoRows { // записей нет — возвращаем нули
