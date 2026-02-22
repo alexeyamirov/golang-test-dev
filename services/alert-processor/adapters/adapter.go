@@ -12,7 +12,7 @@ type AlertResult struct {
 }
 
 // Adapter оценивает данные устройства и возвращает алерты при необходимости.
-// Адаптер привязан к конкретной метрике/условию.
+// Adapter привязан к конкретной метрике/условию.
 type Adapter interface {
 	Evaluate(device *tr181.TR181Device) []AlertResult
 }
