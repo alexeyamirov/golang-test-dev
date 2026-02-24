@@ -1,4 +1,4 @@
-// Package logcollector — опциональная публикация логов в Pulsar для log-viewer.
+// Package logcollector — опциональная публикация логов в Pulsar для log-viewer
 package logcollector
 
 import (
@@ -20,14 +20,14 @@ type LogEntry struct {
 	Timestamp int64  `json:"ts"`      // Unix-время
 }
 
-// Collector публикует логи в Pulsar. Необязателен: при ошибке подключения Send — no-op.
+// Collector публикует логи в Pulsar. Необязателен: при ошибке подключения Send — no-op
 type Collector struct {
 	producer  pulsarclient.Producer // producer для топика tr181-logs
 	client    pulsarclient.Client   // клиент (закрываем при ownClient=true)
 	ownClient bool                  // true — мы создали client, закрываем при Close
 }
 
-// New создает collector с собственным Pulsar клиентом (для api-gateway). При ошибке — nil.
+// New создает collector с собственным Pulsar клиентом (для api-gateway). При ошибке — nil
 func New(serviceName string) *Collector {
 	url := os.Getenv("PULSAR_URL") // адрес брокера
 	if url == "" {
@@ -41,7 +41,7 @@ func New(serviceName string) *Collector {
 }
 
 // NewFromClient создает collector из существующего клиента (для simulator, data-ingestion, alert-processor).
-// serviceName — уникальное имя producer. ownClient=false — клиент не закрывается при Close().
+// serviceName — уникальное имя producer. ownClient=false — клиент не закрывается при Close()
 func NewFromClient(client pulsarclient.Client, serviceName string, ownClient bool) *Collector {
 	name := "log-" + serviceName // уникальное имя producer
 	if name == "log-" {
@@ -60,7 +60,7 @@ func NewFromClient(client pulsarclient.Client, serviceName string, ownClient boo
 	return &Collector{producer: prod, client: client, ownClient: ownClient}
 }
 
-// Send публикует лог в топик. No-op если producer == nil.
+// Send публикует лог в топик. No-op если producer == nil
 func (c *Collector) Send(service, level, msg string) {
 	if c == nil || c.producer == nil {
 		return // collector не инициализирован
@@ -78,7 +78,7 @@ func (c *Collector) Send(service, level, msg string) {
 	_, _ = c.producer.Send(context.Background(), &pulsarclient.ProducerMessage{Payload: data})
 }
 
-// Close освобождает producer и при ownClient — клиент Pulsar.
+// Close освобождает producer и при ownClient — клиент Pulsar
 func (c *Collector) Close() error {
 	if c == nil || c.producer == nil {
 		return nil
