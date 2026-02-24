@@ -1,4 +1,4 @@
-// Package database — см. package doc в redis.go.
+// Package database — см. package doc в redis.go
 package database
 
 import (
@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// PostgresDB — обертка над sql.DB для метрик и алертов (TimescaleDB).
+// PostgresDB — обертка над sql.DB для метрик и алертов (TimescaleDB)
 type PostgresDB struct {
 	db *sql.DB
 }
@@ -128,7 +128,7 @@ func (p *PostgresDB) GetMetrics(ctx context.Context, serialNumber, metricType st
 	return metrics, rows.Err() // проверяем ошибку итерации
 }
 
-// SaveAlert сохраняет алерт в БД
+// SaveAlert сохраняет алерт в DB
 func (p *PostgresDB) SaveAlert(ctx context.Context, serialNumber, alertType string, value int, timestamp time.Time) error {
 	query := `INSERT INTO alerts (serial_number, alert_type, value, timestamp) VALUES ($1, $2, $3, $4)`
 	_, err := p.db.ExecContext(ctx, query, serialNumber, alertType, value, timestamp)
@@ -149,13 +149,13 @@ func (p *PostgresDB) GetAlertStats(ctx context.Context, serialNumber, alertType 
 	return &stats, err
 }
 
-// MetricValue — значение метрики с временной меткой (используется в pkg/database).
+// MetricValue — значение метрики с временной меткой (используется в pkg/database)
 type MetricValue struct {
 	Value int   `json:"value"`
 	Time  int64 `json:"time"`
 }
 
-// AlertStats — агрегированная статистика алертов (среднее значение и количество).
+// AlertStats — агрегированная статистика алертов (среднее значение и количество)
 type AlertStats struct {
 	Value int `json:"value"`
 	Count int `json:"count"`
