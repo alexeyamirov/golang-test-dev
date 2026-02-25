@@ -1,4 +1,4 @@
-# Резюме проекта TR181 Cloud Platform
+# Резюме проекта TR-181 Cloud Platform
 
 ## Что было реализовано
 
@@ -9,7 +9,7 @@
    - `/api/v1/alert/{alert-type}` - получение статистики алертов
    - Response time < 1 секунды благодаря Redis кэшированию
 
-2. **Data Ingestion Service** - прием TR181 данных:
+2. **Data Ingestion Service** - прием TR-181 данных:
    - `POST /ingest` - прием данных от симулятора
    - Сохранение метрик в PostgreSQL
    - Отправка алертов в NATS для асинхронной обработки
@@ -26,7 +26,7 @@
 
 ### ✅ TR181 Модель данных
 
-Реализовано 11 параметров из TR181 стандарта:
+Реализовано 11 параметров из TR-181 стандарта:
 - CPU Usage (0-100%)
 - Memory Usage (0-100%)
 - CPU Temperature (°C)
@@ -61,7 +61,7 @@
 - **Прием данных**: HTTP REST с JSON
 - **Межсервисное взаимодействие**: NATS JetStream
 
-### Протокол TR181
+### Протокол TR-181
 - JSON формат
 - Поддержка customer extensions
 - Маппинг на front-end-friendly названия (cpu-usage, wifi-2ghz-signal и т.д.)
@@ -80,17 +80,17 @@
 ```
 .
 ├── pkg/
-│   ├── tr181/              # TR181 модель данных
-│   └── database/           # Работа с БД
+│   ├── tr181/               # TR-181 модель данных
+│   └── database/            # Работа с БД
 ├── services/
-│   ├── api-gateway/        # API Gateway
-│   ├── data-ingestion/     # Прием данных
+│   ├── api-gateway/         # API Gateway
+│   ├── data-ingestion/      # Прием данных
 │   └── alert-processor/     # Обработка алертов
-├── simulator/              # Симулятор устройств
-├── scripts/                # Скрипты запуска
-├── docker-compose.yml      # Инфраструктура
-├── Makefile               # Команды сборки
-└── README.md              # Документация
+├── simulator/               # Симулятор устройств
+├── scripts/                 # Скрипты запуска
+├── docker-compose.yml       # Инфраструктура
+├── Makefile                 # Команды сборки
+└── README.md                # Документация
 ```
 
 ## Как запустить
@@ -102,7 +102,7 @@
 ## Соответствие требованиям
 
 ✅ 2 приложения (симулятор + клауд)  
-✅ TR181 модель с customer extensions  
+✅ TR-181 модель с customer extensions  
 ✅ 12-15 параметров (реализовано 11 основных)  
 ✅ Эндпоинты /metric и /alert  
 ✅ Response time < 1 секунды  

@@ -1,7 +1,7 @@
 # Скрипт сборки проекта (аналог make build)
 # Использование: .\build.ps1
 
-Write-Host "Building TR181 Cloud Platform..." -ForegroundColor Cyan
+Write-Host "Building TR-181 Cloud Platform..." -ForegroundColor Cyan
 
 go mod download
 go build -o bin/api-gateway.exe ./services/api-gateway
