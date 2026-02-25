@@ -3,14 +3,14 @@ package tr181
 
 import "time" // работа с временными метками
 
-// TR181Device представляет устройство с TR181 данными
+// TR181Device представляет устройство с TR-181 данными
 type TR181Device struct {
 	SerialNumber string     `json:"serial_number"` // серийный номер устройства (например DEV-00000001)
 	Timestamp    time.Time  `json:"timestamp"`     // время снятия показаний
 	Data         DeviceData `json:"data"`          // телеметрия и метрики
 }
 
-// DeviceData содержит основные параметры TR181 модели
+// DeviceData содержит основные параметры TR-181 модели
 type DeviceData struct {
 	// Device.DeviceInfo.ProcessStatus
 	CPUUsage    int `json:"Device.DeviceInfo.ProcessStatus.CPUUsage"`    // 0-100%

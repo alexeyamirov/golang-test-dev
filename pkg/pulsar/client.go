@@ -9,16 +9,16 @@ import (
 )
 
 const (
-	// TopicTR181Data — топик для данных устройств TR181 (метрики, телеметрия).
+	// TopicTR181Data — топик для данных устройств TR-181 (метрики, телеметрия)
 	TopicTR181Data = "persistent://public/default/tr181-device-data"
-	// TopicAlerts — топик для алертов (устаревший, алерты пишутся в БД).
+	// TopicAlerts — топик для алертов (устаревший, алерты пишутся в БД)
 	TopicAlerts = "persistent://public/default/alerts"
-	// TopicLogs — топик для логов (опциональный log-viewer подписывается).
+	// TopicLogs — топик для логов (опциональный log-viewer подписывается)
 	TopicLogs = "persistent://public/default/tr181-logs"
 )
 
 // NewClient создает Pulsar клиент.
-// URL берется из аргумента, затем из PULSAR_URL, иначе localhost:6650.
+// URL берется из аргумента, затем из PULSAR_URL, иначе localhost:6650
 func NewClient(url string) (pulsarclient.Client, error) {
 	if url == "" {
 		url = os.Getenv("PULSAR_URL") // читаем из переменной окружения
