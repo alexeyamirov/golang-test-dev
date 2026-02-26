@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// TopicTR181Data — топик для данных устройств TR-181 (метрики, телеметрия)
+	// TopicTR181Data — топик для данных устройств TR181 (метрики, телеметрия)
 	TopicTR181Data = "persistent://public/default/tr181-device-data"
 	// TopicAlerts — топик для алертов (устаревший, алерты пишутся в БД)
 	TopicAlerts = "persistent://public/default/alerts"

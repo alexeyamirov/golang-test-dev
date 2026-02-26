@@ -1,4 +1,4 @@
-# Архитектура TR-181 Cloud Platform
+# Архитектура TR181 Cloud Platform
 
 ## Обзор
 
@@ -20,7 +20,7 @@
   - Response time < 1 секунды благодаря кэшированию
 
 ### 2. Data Ingestion Service (`services/data-ingestion`)
-- **Назначение**: Прием и сохранение TR-181 данных
+- **Назначение**: Прием и сохранение TR181 данных
 - **Ответственность**: только парсинг сообщений и запись метрик в БД
 - **Структура**: config, parser, storage, handler — разделение ответственности
 - **Не знает** об алертах
@@ -34,7 +34,7 @@
 ### 4. Simulator (`simulator`)
 - **Назначение**: Симуляция 20,000 устройств
 - **Особенности**:
-  - Публикует TR-181 данные в Apache Pulsar topic `tr181-device-data`
+  - Публикует TR181 данные в Apache Pulsar topic `tr181-device-data`
   - Каждое устройство отправляет данные каждые 30 секунд
   - Генерация реалистичных данных с вариациями
   - Периодическая генерация условий для алертов (5% CPU, 3% WiFi)
@@ -46,7 +46,7 @@
 - **Внешний API**: HTTP REST (Gin framework) и gRPC (порт 9090)
 - **Прием данных**: Apache Pulsar (topic `tr181-device-data`)
 - **Межсервисное взаимодействие**: Apache Pulsar (message broker)
-- **TR-181 формат**: JSON с поддержкой customer extensions
+- **TR181 формат**: JSON с поддержкой customer extensions
 
 ### Базы данных
 - **PostgreSQL + TimescaleDB**: 
@@ -62,7 +62,7 @@
 
 ### Инфраструктура
 - **Docker Compose**: Оркестрация инфраструктурных сервисов
-- **Apache Pulsar**: Message broker для TR-181 данных и алертов
+- **Apache Pulsar**: Message broker для TR181 данных и алертов
 
 ## Архитектурные решения
 
