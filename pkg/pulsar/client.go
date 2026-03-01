@@ -1,4 +1,4 @@
-// Package pulsar предоставляет клиент для подключения к Apache Pulsar.
+// Package pulsar предоставляет клиент для подключения к Apache Pulsar
 package pulsar
 
 import (
