@@ -15,7 +15,7 @@ type PostgresDB struct {
 	db *sql.DB
 }
 
-// NewPostgresDB подключается к PostgreSQL и возвращает клиент БД.
+// NewPostgresDB подключается к PostgreSQL и возвращает клиент БД
 func NewPostgresDB(connStr string) (*PostgresDB, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -34,12 +34,12 @@ func NewPostgresDB(connStr string) (*PostgresDB, error) {
 	return &PostgresDB{db: db}, nil
 }
 
-// Close закрывает соединение с БД.
+// Close закрывает соединение с БД
 func (p *PostgresDB) Close() error {
 	return p.db.Close()
 }
 
-// DB возвращает низкоуровневый *sql.DB (для миграций и т.п.).
+// DB возвращает низкоуровневый *sql.DB (для миграций и тому подобного)
 func (p *PostgresDB) DB() *sql.DB {
 	return p.db
 }

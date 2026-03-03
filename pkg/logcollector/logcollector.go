@@ -12,7 +12,7 @@ import (
 	pulsarclient "github.com/apache/pulsar-client-go/pulsar"
 )
 
-// LogEntry — структура сообщения в топике логов.
+// LogEntry — структура сообщения в топике логов
 type LogEntry struct {
 	Service   string `json:"service"` // имя сервиса (simulator, data-ingestion и т.д.)
 	Level     string `json:"level"`   // уровень: info, warn, error
@@ -40,7 +40,7 @@ func New(serviceName string) *Collector {
 	return NewFromClient(client, serviceName, true) // ownClient=true — мы владеем client
 }
 
-// NewFromClient создает collector из существующего клиента (для simulator, data-ingestion, alert-processor).
+// NewFromClient создает collector из существующего клиента (для simulator, data-ingestion, alert-processor)
 // serviceName — уникальное имя producer. ownClient=false — клиент не закрывается при Close()
 func NewFromClient(client pulsarclient.Client, serviceName string, ownClient bool) *Collector {
 	name := "log-" + serviceName // уникальное имя producer

@@ -71,7 +71,7 @@ type MetricValue struct {
 	Time  int64 `json:"time"` // Unix timestamp
 }
 
-// AlertData представляет данные алерта.
+// AlertData представляет данные алерта
 type AlertData struct {
 	Value int `json:"value"` // среднее значение за период
 	Count int `json:"count"` // количество алертов за период

@@ -1,4 +1,4 @@
-// Package adapters содержит адаптеры для преобразования метрик TR181 в алерты.
+// Package adapters содержит адаптеры для преобразования метрик TR181 в алерты
 package adapters
 
 import (

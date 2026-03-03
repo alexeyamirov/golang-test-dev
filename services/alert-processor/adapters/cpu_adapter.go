@@ -4,18 +4,18 @@ import (
 	"golang-test-dev/pkg/tr181"
 )
 
-// cpuAlertThreshold — порог загрузки CPU (%), выше которого создается алерт.
+// cpuAlertThreshold — порог загрузки CPU (%), выше которого создается алерт
 const cpuAlertThreshold = 60
 
-// CPUAdapter проверяет высокую загрузку CPU.
+// CPUAdapter проверяет высокую загрузку CPU
 type CPUAdapter struct{}
 
-// NewCPUAdapter создает адаптер для алерта high-cpu-usage.
+// NewCPUAdapter создает адаптер для алерта high-cpu-usage
 func NewCPUAdapter() *CPUAdapter {
 	return &CPUAdapter{}
 }
 
-// Evaluate оценивает данные устройства и возвращает алерты при CPU больше 60%.
+// Evaluate оценивает данные устройства и возвращает алерты при CPU больше 60%
 func (a *CPUAdapter) Evaluate(device *tr181.TR181Device) []AlertResult {
 	if device.Data.CPUUsage <= cpuAlertThreshold {
 		return nil // норма — алерт не нужен
